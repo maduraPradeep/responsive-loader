@@ -31,9 +31,10 @@ type Config = {
   adapter: ?Function,
   format: 'png' | 'jpg' | 'jpeg',
   disable: ?boolean,
+  transformImageFormats: ?Array
 };
 
-const getOutputAndPublicPath = (fileName:string, {outputPath: configOutputPath, publicPath: configPublicPath}:Config) => {
+const getOutputAndPublicPath = (fileName: string, { outputPath: configOutputPath, publicPath: configPublicPath }: Config) => {
   let outputPath = fileName;
 
   if (configOutputPath) {
@@ -71,6 +72,7 @@ module.exports = function loader(content: Buffer) {
   const outputContext: string = config.context || this.rootContext || this.options && this.options.context;
   const outputPlaceholder: boolean = Boolean(config.placeholder) || false;
   const placeholderSize: number = parseInt(config.placeholderSize, 10) || 40;
+  const transformImageFormats: Array = config.transformImageFormats || [];
   // JPEG compression
   const quality: number = parseInt(config.quality, 10) || 85;
   // Useful when converting from PNG to JPG
@@ -132,22 +134,22 @@ module.exports = function loader(content: Buffer) {
       .replace(/\[width\]/ig, '100')
       .replace(/\[height\]/ig, '100');
 
-    const {outputPath, publicPath} = getOutputAndPublicPath(fileName, config);
+    const { outputPath, publicPath } = getOutputAndPublicPath(fileName, config);
 
     loaderContext.emitFile(outputPath, content);
 
     return loaderCallback(null, 'module.exports = {srcSet:' + publicPath + ',images:[{path:' + publicPath + ',width:100,height:100}],src: ' + publicPath + ',toString:function(){return ' + publicPath + '}};');
   }
 
-  const createFile = ({data, width, height}) => {
+  const createFile = ({ data, width, height }) => {
     const fileName = loaderUtils.interpolateName(loaderContext, name, {
       context: outputContext,
       content: data
     })
-    .replace(/\[width\]/ig, width)
-    .replace(/\[height\]/ig, height);
+      .replace(/\[width\]/ig, width)
+      .replace(/\[height\]/ig, height);
 
-    const {outputPath, publicPath} = getOutputAndPublicPath(fileName, config);
+    const { outputPath, publicPath } = getOutputAndPublicPath(fileName, config);
 
     loaderContext.emitFile(outputPath, data);
 
@@ -159,7 +161,7 @@ module.exports = function loader(content: Buffer) {
     };
   };
 
-  const createPlaceholder = ({data}: {data: Buffer}) => {
+  const createPlaceholder = ({ data }: { data: Buffer }) => {
     const placeholder = data.toString('base64');
     return JSON.stringify('data:' + (mime ? mime + ';' : '') + 'base64,' + placeholder);
   };
@@ -181,6 +183,16 @@ module.exports = function loader(content: Buffer) {
             mime,
             options: adapterOptions
           }));
+
+          if(transformImageFormats.length>0){
+            transformImageFormats.forEach(mime=>{
+              promises.push(img.resize({
+                width,
+                mime,
+                options: adapterOptions
+              }));
+            })
+          }
         }
       });
 
@@ -192,6 +204,8 @@ module.exports = function loader(content: Buffer) {
         }));
       }
 
+     
+
       return Promise.all(promises)
         .then(results => outputPlaceholder
           ? {
@@ -201,9 +215,9 @@ module.exports = function loader(content: Buffer) {
           : {
             files: results.map(createFile)
           }
-         );
+        );
     })
-    .then(({files, placeholder}) => {
+    .then(({ files, placeholder }) => {
       const srcset = files.map(f => f.src).join('+","+');
 
       const images = files.map(f => '{path:' + f.path + ',width:' + f.width + ',height:' + f.height + '}').join(',');
@@ -211,14 +225,14 @@ module.exports = function loader(content: Buffer) {
       const firstImage = files[0];
 
       loaderCallback(null, 'module.exports = {' +
-          'srcSet:' + srcset + ',' +
-          'images:[' + images + '],' +
-          'src:' + firstImage.path + ',' +
-          'toString:function(){return ' + firstImage.path + '},' +
-          'placeholder: ' + placeholder + ',' +
-          'width:' + firstImage.width + ',' +
-          'height:' + firstImage.height +
-      '};');
+        'srcSet:' + srcset + ',' +
+        'images:[' + images + '],' +
+        'src:' + firstImage.path + ',' +
+        'toString:function(){return ' + firstImage.path + '},' +
+        'placeholder: ' + placeholder + ',' +
+        'width:' + firstImage.width + ',' +
+        'height:' + firstImage.height +
+        '};');
     })
     .catch(err => loaderCallback(err));
 };
