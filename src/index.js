@@ -264,7 +264,7 @@ module.exports = function loader(content: Buffer) {
 
 
       loaderCallback(null, 'module.exports = {' +
-        'srcSets:' + srcSets + ',' +
+        'srcSets:' + JSON.stringify(srcSets) + ',' +
         'images:[' + images + '],' +
         'src:' + firstImage.path + ',' +
         'toString:function(){return ' + firstImage.path + '},' +
