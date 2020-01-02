@@ -246,11 +246,11 @@ module.exports = function loader(content: Buffer) {
 
       const srcSets = [];
       let images = '';
-      for (const [key, value] in Object.entries(srcSetGroups)) {
+      for (const [key, value] of Object.entries(srcSetGroups)) {
 
         const srcset = value.map(f => f.src).join('+","+');
         if (key !== "default") {
-          srcSets.push({ type: key, srcSet });
+          srcSets.push({ type: key, srcset });
         } else {
           srcSets.push({ srcset });
         }
