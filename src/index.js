@@ -246,19 +246,19 @@ module.exports = function loader(content: Buffer) {
 
       const srcSets = [];
       let images = '';
-      //let srcSetsToString = '[';
+      let srcSetsToString = '[';
       for (const [key, value] of Object.entries(srcSetGroups)) {
-console.debug(value)
+        console.debug(value)
         const srcset = value.map(f => f.src).join('+","+');
-      //  srcSetsToString += '{srcset:' + srcset;
+        srcSetsToString += '{srcset:' + srcset;
         if (key !== "default") {
-          //srcSetsToString += ',type:' + key;
+          srcSetsToString += ',type:"' + key + '"';
           srcSets.push({ type: key, srcset });
         } else {
           srcSets.push({ srcset });
         }
 
-        //srcSetsToString += '}'
+        srcSetsToString += '},'
 
         images += value.map(f => '{path:' + f.path + ',width:' + f.width + ',height:' + f.height + '}').join(',')
       }
@@ -270,11 +270,11 @@ console.debug(value)
 
       const firstImage = files[0];
 
-      //srcSetsToString += ']';
+      srcSetsToString += ']';
 
       loaderCallback(null, 'module.exports = {' +
-        'srcSets:' + JSON.stringify(srcSets) + ',' +
-        'images:[' + images + '],' +
+        'srcSets:' + srcSetsToString + ',' +
+     //   'images:[' + images + '],' +
         'src:' + firstImage.path + ',' +
         'toString:function(){return ' + firstImage.path + '},' +
         'placeholder: ' + placeholder + ',' +
