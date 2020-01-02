@@ -6,7 +6,6 @@ module.exports = (imagePath) => {
   return {
     metadata: () => image.metadata(),
     resize: ({ width, mime, options }) => new Promise((resolve, reject) => {
-      console.debug("width:", width, mime, options)
       let resized = image.clone()
         .resize(width, null);
       if (options.background) {
