@@ -16,9 +16,6 @@ const EXTS = {
   'image/webp': 'webp'
 };
 
-const ORDER = {
-  [MIMES.webp]: 0
-}
 
 type Config = {
   size: string | number | void,
@@ -249,10 +246,10 @@ module.exports = function loader(content: Buffer) {
       }, { default: [] })
 
 
-      let images = '';
+      //let images = '';
       let srcSetsToString = '';
       for (const [key, value] of Object.entries(srcSetGroups)) {
-        console.debug(value)
+
         const srcset = value.map(f => f.src).join('+","+');
 
         if (key !== "default") {
@@ -263,13 +260,9 @@ module.exports = function loader(content: Buffer) {
         }
 
 
-        images += value.map(f => '{path:' + f.path + ',width:' + f.width + ',height:' + f.height + '}').join(',')
+        // images += value.map(f => '{path:' + f.path + ',width:' + f.width + ',height:' + f.height + '}').join(',')
       }
 
-      //const srcSetsToString=srcSets
-      //  const srcset = files.map(f => f.src).join('+","+');
-
-      // const images = files.map(f => '{path:' + f.path + ',width:' + f.width + ',height:' + f.height + '}').join(',');
 
       const firstImage = files[0];
 
