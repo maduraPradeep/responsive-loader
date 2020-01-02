@@ -16,6 +16,10 @@ const EXTS = {
   'image/webp': 'webp'
 };
 
+const ORDER = {
+  [MIMES.webp]: 0
+}
+
 type Config = {
   size: string | number | void,
   sizes: [string | number] | void,
@@ -244,21 +248,20 @@ module.exports = function loader(content: Buffer) {
         return result;
       }, { default: [] })
 
-      const srcSets = [];
+
       let images = '';
-      let srcSetsToString = '[';
+      let srcSetsToString = '';
       for (const [key, value] of Object.entries(srcSetGroups)) {
         console.debug(value)
         const srcset = value.map(f => f.src).join('+","+');
-        srcSetsToString += '{srcset:' + srcset;
+
         if (key !== "default") {
-          srcSetsToString += ',type:"' + key + '"';
-          srcSets.push({ type: key, srcset });
+          srcSetsToString = '{srcset:' + srcset + ',type:"' + key + '"},' + srcSetsToString;//add to beginning
+
         } else {
-          srcSets.push({ srcset });
+          srcSetsToString += '{srcset:' + srcset + '}';
         }
 
-        srcSetsToString += '},'
 
         images += value.map(f => '{path:' + f.path + ',width:' + f.width + ',height:' + f.height + '}').join(',')
       }
@@ -270,11 +273,11 @@ module.exports = function loader(content: Buffer) {
 
       const firstImage = files[0];
 
-      srcSetsToString += ']';
+      srcSetsToString = '[' + srcSetsToString + ']';
 
       loaderCallback(null, 'module.exports = {' +
         'srcSets:' + srcSetsToString + ',' +
-     //   'images:[' + images + '],' +
+        //   'images:[' + images + '],' +
         'src:' + firstImage.path + ',' +
         'toString:function(){return ' + firstImage.path + '},' +
         'placeholder: ' + placeholder + ',' +
