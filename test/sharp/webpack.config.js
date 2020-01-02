@@ -21,7 +21,8 @@ module.exports = {
         options: {
           sizes: [500, 750, 1000],
           adapter: require('../../sharp')
-        }
+        },
+        transformedFormats: ['webp']
       }
     ]
   },
