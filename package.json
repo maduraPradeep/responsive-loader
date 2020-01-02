@@ -1,5 +1,5 @@
 {
-  "name": "responsive-loader",
+  "name": "responsive-loader2",
   "version": "1.2.0-beta.1",
   "description": "A webpack loader for responsive images",
   "main": "lib/index.js",
