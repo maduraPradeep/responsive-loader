@@ -12,7 +12,8 @@ const MIMES = {
 
 const EXTS = {
   'image/jpeg': 'jpg',
-  'image/png': 'png'
+  'image/png': 'png',
+  'image/webp': 'webp'
 };
 
 type Config = {
@@ -73,7 +74,7 @@ module.exports = function loader(content: Buffer) {
   const outputContext: string = config.context || this.rootContext || this.options && this.options.context;
   const outputPlaceholder: boolean = Boolean(config.placeholder) || false;
   const placeholderSize: number = parseInt(config.placeholderSize, 10) || 40;
-  const transformedFormats: array = config.transformedFormats;
+  const transformedFormats: array = config.transformedFormats || [];
   // JPEG compression
   const quality: number = parseInt(config.quality, 10) || 85;
   // Useful when converting from PNG to JPG
@@ -150,22 +151,22 @@ module.exports = function loader(content: Buffer) {
       .replace(/\[width\]/ig, width)
       .replace(/\[height\]/ig, height);
 
-    const srcSet = {
 
-    };
+    let type = null;
 
     if (mime === MIMES.webp) {
       fileName += ".webp";
-      srcSet.type = MIMES.webp;
+      type = MIMES.webp;
     }
     const { outputPath, publicPath } = getOutputAndPublicPath(fileName, config);
 
     loaderContext.emitFile(outputPath, data);
 
-    srcSet.src = publicPath + `+${JSON.stringify(` ${width}w`)}`;
+    const src = publicPath + `+${JSON.stringify(` ${width}w`)}`;
 
     return {
-      srcSet,
+      src,
+      type,
       path: publicPath,
       width: width,
       height: height
@@ -246,6 +247,7 @@ module.exports = function loader(content: Buffer) {
       const srcSets = [];
       let images = '';
       for (const [key, value] in Object.entries(srcSetGroups)) {
+
         const srcset = value.map(f => f.src).join('+","+');
         if (key !== "default") {
           srcSets.push({ type: key, srcSet });
