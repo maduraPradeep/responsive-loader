@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/herrstucki/responsive-loader.svg?branch=master)](https://travis-ci.org/herrstucki/responsive-loader)
 
-A webpack loader for responsive images. Creates multiple images from one source image, and returns a `srcset`. For more information on how to use `srcset`, read [Responsive Images: If you’re just changing resolutions, use srcset.](https://css-tricks.com/responsive-images-youre-just-changing-resolutions-use-srcset/). Browser support is [pretty good](http://caniuse.com/#search=srcset).
+A webpack loader for responsive images. Creates multiple images from one source image, and returns a `srcset`. For more information on how to use `srcset`, read [Responsive Images: If you’re just changing resolutions, use srcset.](https://css-tricks.com/responsive-images-youre-just-changing-resolutions-use-srcset/). Browser support is [pretty good](http://caniuse.com/#search=srcset). This is a form of https://github.com/herrstucki/responsive-loader. Introducing new option to transformed images to next gen formats (webp) with the given sizes.
 
 ## Install
 
@@ -76,10 +76,22 @@ const responsiveImage = require('myImage.jpg?sizes[]=100,sizes[]=200,sizes[]=300
 // responsiveImage.images => [{height: 50, path: '2fefae46cb857bc750fa5e5eed4a0cde-100.jpg', width: 100}, {height: 100, path: '2fefae46cb857bc750fa5e5eed4a0cde-200.jpg', width: 200}, {height: 150, path: '2fefae46cb857bc750fa5e5eed4a0cde-300.jpg', width: 300}]
 // responsiveImage.src => '2fefae46cb857bc750fa5e5eed4a0cde-100.jpg'
 // responsiveImage.toString() => '2fefae46cb857bc750fa5e5eed4a0cde-100.jpg'
-ReactDOM.render(<img srcSet={responsiveImage.srcSet} src={responsiveImage.src} />, el);
+const Picture = ({ src, srcSets, placeholder, alt, className }) => {
+    return (<picture>
+        {srcSets.map(({ type, srcset }) => {
+            return <source type={type}
+                srcSet={srcset} key={type || "default"} />
+        })}
+
+        <img src={src}
+            placeholder={placeholder}
+            alt={alt} className={className} />
+    </picture>)
+}
+ReactDOM.render(<Picture {...responsiveImage} className='' alt=''/>, el);
 
 // Or you can just use it as props, `srcSet` and `src` will be set properly
-ReactDOM.render(<img {...responsiveImage} />, el);
+ReactDOM.render(<Picture {...responsiveImage} className='' alt=''/>, el);
 ```
 
 Or use it in CSS (only the first resized image will be used, if you use multiple `sizes`):
@@ -104,7 +116,7 @@ ReactDOM.render(
     backgroundSize: 'cover',
     backgroundImage: 'url("' + responsiveImage.placeholder + '")'
   }}>
-    <img src={responsiveImage.src} srcSet={responsiveImage.srcSet} />
+   <Picture {...responsiveImage} className='' alt=''/>
   </div>, el);
 ```
 
@@ -128,6 +140,7 @@ ReactDOM.render(
 | `placeholderSize` | `integer` | `40` | A number value specifying the width of the placeholder image, if enabled with the option above |
 | `adapter` | `Adapter` | JIMP | Specify which adapter to use. Can only be specified in the loader options. |
 | `disable` | `boolean` | `false` | Disable processing of images by this loader (useful in development). `srcSet` and other attributes will still be generated but only for the original size. Note that the `width` and `height` attributes will both be set to `100` but the image will retain its original dimensions. |
+`transformedFormats`|`array`|`[]`|transformed to nextgen image formats with the given sizes. currently supported `webp`. This only works with sharp adapter since jimp does not support webp yet.
 
 #### Adapter-specific options
 
