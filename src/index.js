@@ -134,9 +134,9 @@ module.exports = function loader(content: Buffer) {
     content: content
   }).replace(/-\[width\]/ig, '');
 
-  const { publicPath: originalFilePublicPath, outputPath: originalFileOutputPath } = getOutputAndPublicPath(originalFileName, config);
+  const { publicPath: originalFilePublicPath } = getOutputAndPublicPath(originalFileName, config);
 
-  console.debug("Original file name", originalFileName, originalFilePublicPath, originalFileOutputPath);
+
   if (config.disable) {
     // emit original content only
     const fileName = loaderUtils.interpolateName(loaderContext, name, {
@@ -209,11 +209,9 @@ module.exports = function loader(content: Buffer) {
   };
 
   const img = adapter(loaderContext.resourcePath);
-  console.debug("resource path:", loaderContext.resourcePath);
   return img.metadata()
     .then((metadata) => {
 
-      console.debug("image metadata:", metadata);
       let promises = [];
       const widthsToGenerate = new Set();
 
@@ -235,7 +233,6 @@ module.exports = function loader(content: Buffer) {
           if (transformedFormats.length > 0) {
             transformedFormats.forEach(format => {
               if (MIMES[format]) {
-                console.debug("webp:", width)
                 promises.push(img.resize({
                   width,
                   mime: MIMES[format],
@@ -252,7 +249,7 @@ module.exports = function loader(content: Buffer) {
       );
 
       if (outputPlaceholder && mime !== MIMES.svg) {
-        console.debug("placeholder:", placeholderSize)
+
         promises.push(img.resize({
           width: placeholderSize,
           options: adapterOptions,
