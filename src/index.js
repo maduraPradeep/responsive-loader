@@ -283,6 +283,9 @@ module.exports = function loader(content: Buffer) {
         return result;
       }, { default: [] })
 
+      if(mime===MIMES.svg){
+        srcSetGroups.default.push({src:originalFilePublicPath})
+      }
 
       //let images = '';
       let srcSetsToString = '';
@@ -311,7 +314,7 @@ module.exports = function loader(content: Buffer) {
 
         fs.copyFile(loaderContext.resourcePath, `dist/${originalFileName}`, (err) => {
           if (err) throw err;
-          console.log('source.txt was copied to destination.txt');
+          
         });
 
         loaderCallback(null, 'module.exports = {' +
