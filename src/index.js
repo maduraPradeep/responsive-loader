@@ -2,18 +2,20 @@
 
 const path = require('path');
 const loaderUtils = require('loader-utils');
-
+const fs = require('fs');
 const MIMES = {
   'jpg': 'image/jpeg',
   'jpeg': 'image/jpeg',
   'png': 'image/png',
-  'webp': 'image/webp'
+  'webp': 'image/webp',
+  'svg': 'image/svg+xml'
 };
 
 const EXTS = {
   'image/jpeg': 'jpg',
   'image/png': 'png',
-  'image/webp': 'webp'
+  'image/webp': 'webp',
+  'image/svg+xml': 'svg'
 };
 
 
@@ -98,7 +100,6 @@ module.exports = function loader(content: Buffer) {
   }
 
   const name = (config.name || '[hash]-[width].[ext]').replace(/\[ext\]/ig, ext);
-
   const adapter: Function = config.adapter || require('./adapters/jimp');
   const loaderContext: any = this;
 
@@ -128,6 +129,14 @@ module.exports = function loader(content: Buffer) {
     return loaderCallback(null, content);
   }
 
+  const originalFileName = loaderUtils.interpolateName(loaderContext, name, {
+    context: outputContext,
+    content: content
+  }).replace(/-\[width\]/ig, '');
+
+  const { publicPath: originalFilePublicPath, outputPath: originalFileOutputPath } = getOutputAndPublicPath(originalFileName, config);
+
+  console.debug("Original file name", originalFileName, originalFilePublicPath, originalFileOutputPath);
   if (config.disable) {
     // emit original content only
     const fileName = loaderUtils.interpolateName(loaderContext, name, {
@@ -148,30 +157,49 @@ module.exports = function loader(content: Buffer) {
     let fileName = loaderUtils.interpolateName(loaderContext, name, {
       context: outputContext,
       content: data
-    })
-      .replace(/\[width\]/ig, width)
-      .replace(/\[height\]/ig, height);
+    });
 
 
     let type = null;
 
-    if (mime === MIMES.webp) {
-      fileName += ".webp";
-      type = MIMES.webp;
+    if (mime === MIMES.svg) {
+
+      fileName = fileName
+        .replace(/-\[width\]/ig, '')
+        .replace(/\[height\]/ig, '');
+    } else {
+      fileName = fileName
+        .replace(/\[width\]/ig, width)
+        .replace(/\[height\]/ig, height);
+
+      if (mime === MIMES.webp) {
+        fileName += ".webp";
+        type = MIMES.webp;
+
+      }
     }
     const { outputPath, publicPath } = getOutputAndPublicPath(fileName, config);
 
     loaderContext.emitFile(outputPath, data);
 
-    const src = publicPath + `+${JSON.stringify(` ${width}w`)}`;
+    if (mime === MIMES.svg) {
+      const src = publicPath;
 
-    return {
-      src,
-      type,
-      path: publicPath,
-      width: width,
-      height: height
-    };
+      return {
+        src,
+        path: publicPath
+      };
+    } else {
+      const src = publicPath + `+${JSON.stringify(` ${width}w`)}`;
+
+      return {
+        src,
+        type,
+        path: publicPath,
+        width: width,
+        height: height
+      };
+    }
 
   };
 
@@ -181,8 +209,11 @@ module.exports = function loader(content: Buffer) {
   };
 
   const img = adapter(loaderContext.resourcePath);
+  console.debug("resource path:", loaderContext.resourcePath);
   return img.metadata()
     .then((metadata) => {
+
+      console.debug("image metadata:", metadata);
       let promises = [];
       const widthsToGenerate = new Set();
 
@@ -192,15 +223,19 @@ module.exports = function loader(content: Buffer) {
         // Only resize images if they aren't an exact copy of one already being resized...
         if (!widthsToGenerate.has(width)) {
           widthsToGenerate.add(width);
-          promises.push(img.resize({
-            width,
-            mime,
-            options: adapterOptions
-          }));
+
+          if (mime !== MIMES.svg) {//svg does not required to resize
+            promises.push(img.resize({
+              width,
+              mime,
+              options: adapterOptions
+            }));
+          }
 
           if (transformedFormats.length > 0) {
             transformedFormats.forEach(format => {
               if (MIMES[format]) {
+                console.debug("webp:", width)
                 promises.push(img.resize({
                   width,
                   mime: MIMES[format],
@@ -211,9 +246,13 @@ module.exports = function loader(content: Buffer) {
           }
 
         }
-      });
+      }
 
-      if (outputPlaceholder) {
+
+      );
+
+      if (outputPlaceholder && mime !== MIMES.svg) {
+        console.debug("placeholder:", placeholderSize)
         promises.push(img.resize({
           width: placeholderSize,
           options: adapterOptions,
@@ -223,8 +262,10 @@ module.exports = function loader(content: Buffer) {
 
 
 
+
+
       return Promise.all(promises)
-        .then(results => outputPlaceholder
+        .then(results => outputPlaceholder && mime !== MIMES.svg
           ? {
             files: results.slice(0, -1).map(createFile),
             placeholder: createPlaceholder(results[results.length - 1])
@@ -255,7 +296,7 @@ module.exports = function loader(content: Buffer) {
         if (key !== "default") {
           srcSetsToString = '{srcset:' + srcset + ',type:"' + key + '"},' + srcSetsToString;//add to beginning
 
-        } else {
+        } else if (srcset.length > 0) {
           srcSetsToString += '{srcset:' + srcset + '}';
         }
 
@@ -268,15 +309,33 @@ module.exports = function loader(content: Buffer) {
 
       srcSetsToString = '[' + srcSetsToString + ']';
 
-      loaderCallback(null, 'module.exports = {' +
-        'srcSets:' + srcSetsToString + ',' +
-        //   'images:[' + images + '],' +
-        'src:' + firstImage.path + ',' +
-        'toString:function(){return ' + firstImage.path + '},' +
-        'placeholder: ' + placeholder + ',' +
-        'width:' + firstImage.width + ',' +
-        'height:' + firstImage.height +
-        '};');
+
+      if (mime === MIMES.svg) {
+
+        fs.copyFile(loaderContext.resourcePath, `dist/${originalFileName}`, (err) => {
+          if (err) throw err;
+          console.log('source.txt was copied to destination.txt');
+        });
+
+        loaderCallback(null, 'module.exports = {' +
+          'srcSets:' + srcSetsToString + ',' +
+          //   'images:[' + images + '],' +
+          'src:' + originalFilePublicPath + ',' +
+          'toString:function(){return ' + originalFilePublicPath + '},' +
+
+          '};');
+      } else {
+        loaderCallback(null, 'module.exports = {' +
+          'srcSets:' + srcSetsToString + ',' +
+          //   'images:[' + images + '],' +
+          'src:' + firstImage.path + ',' +
+          'toString:function(){return ' + firstImage.path + '},' +
+          'placeholder: ' + placeholder + ',' +
+          'width:' + firstImage.width + ',' +
+          'height:' + firstImage.height +
+          '};');
+      }
+
     })
     .catch(err => loaderCallback(err));
 };
